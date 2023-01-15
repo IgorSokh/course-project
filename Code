@@ -1,0 +1,213 @@
+#define _CRT_SECURE_NO_WARNINGS
+
+#include<stdio.h>
+#include"stdlib.h"
+#include"string.h"
+#include"malloc.h"
+#include"locale.h"
+#include "Windows.h"
+
+struct patient {
+	int id;
+	char name[50];
+	char gender[10];
+	float heartrate;
+	float temperature;
+	float oxygenpressure;
+};
+FILE* file;
+char path[] = "res.txt";
+
+struct patient* add(struct patient*, int*);
+
+void print(struct patient*, int);
+
+struct patient* read();
+
+int getsize();
+
+struct patient* sort(struct patient*, int);
+
+struct patient* find(struct patient*, char*, float, float, int);
+
+int save(struct patient*, int);
+
+struct patient* load();
+
+int main() {
+	SetConsoleCP(1251);
+	SetConsoleOutputCP(1251);
+	if (!(file = fopen(path, "r")))    //Проверка наличие файла
+	{
+		file = fopen(path, "w+");
+		fclose(file);
+	}
+	struct patient* patients = (struct patient*)malloc(sizeof(struct patient));
+	int index = 0;
+	while (1) {
+		printf("1 Добавление\n2 Вывод\n3 Поиск\n4 Сортировка\n5 Чтение из файла\n6 Сохранение\n7 Загрузка из файла\n:");
+		int choice = 0;
+		scanf("%d", &choice);
+		switch (choice) {
+		case 1: {                  //Добавление
+			patients = add(patients, &index);    
+		}
+			  break;
+		case 2: {            //Вывод 
+			print(patients, index);
+		}
+			  break;
+		case 3: {           //Поиск
+			struct patient* res;
+			printf("1 Поиск по имени\n 2 Поиск по температуре\n:");
+			int t;
+			scanf("%d", &t);
+			if (t == 1) {
+				printf("Имя\n:");
+				char name[50];
+				scanf("%s", &name);
+				res = find(patients, name, 0, 0, index);
+			}
+			else {
+				printf("Минимальное Максимальное\n:");
+				float min, max;
+				scanf("%f %f", &min, &max);
+				res = find(patients, "", min, max, index);
+			}
+			if (res != NULL) {
+				print(res, index);
+			}
+		}
+			  break;
+		case 4: {                //Сортировка
+			struct patient* res;
+			res = sort(patients, index);
+			print(res, sort);
+		}
+			  break;
+		case 5:                 //Чтение
+		{
+			print(read(), getsize());
+		}	break;
+		case 6:                    //Сохранение
+		{
+			save(patients,index);
+		}	break;
+		case 7:                    //Загрузка
+		{
+			patients = load();
+			index = getsize();
+		}break;
+		}
+	}
+	return 0;
+}
+
+struct patient* add(struct patient* temp, int* index) {            //Добавление
+	temp = (struct patient*)realloc(temp, sizeof(struct patient) * (*index + 1));
+	printf("Уникальный номер, Имя, Пол, Пульс, Температура, Кислородное давление\n");
+	scanf("%d %s %s %f %f %f", &temp[*index].id, &temp[*index].name, &temp[*index].gender, &temp[*index].heartrate,
+		&temp[*index].temperature, &temp[*index].oxygenpressure);
+	(*index)++;
+	return temp;
+}
+
+void print(struct patient* li, int size) {                              //Вывод
+	printf("Уникальный номер, Имя, Пол, Пульс, Температура, Кислородное давление\n");
+	for (int i = 0; i < size && li->id > 0; ++i, li++) {
+		if (li != NULL)
+			printf("%d %s %s %f %f %f\n", li->id, li->name, li->gender, li->heartrate, li->temperature,
+				li->oxygenpressure);
+	}
+}
+
+int getsize() {             //Возращает количество элементов в файле
+	int count = 0;
+	char c;
+	file = fopen(path, "r");
+	for (c = getc(file); c != EOF; c = getc(file))
+		if (c == '\n')
+			count = count + 1;
+	fclose(file);
+	return count;
+
+}
+
+struct patient* read() {                 //Чтение файла
+	int size = getsize();
+	if (size == 0)
+		return NULL;
+	file = fopen(path, "r");
+	struct patient* li = (struct patient*)malloc(sizeof(struct patient) * size);
+	int i = 0;
+	while (i < size) {
+		fscanf(file, "%d %s %s %f %f %f", &li[i].id, &li[i].name, &li[i].gender, &li[i].heartrate,
+			&li[i].temperature, &li[i].oxygenpressure);
+		i++;
+	}
+	return li;
+}
+
+struct patient* find(struct patient* li, char* name, float min, float max, int size) {     //Поиск файла
+	struct patient* res = malloc(sizeof(struct patient) * 1000);
+	int z = 0;
+	if (min != 0 && max != 0) {
+		for (int i = 0; i < size; ++i) {
+			if (li[i].temperature >= min && li[i].temperature <= max) {
+				res[z] = li[i];
+				z++;
+			}
+		}
+	}
+	else {
+		for (int i = 0; i < size; ++i) {
+			if (strcmp(li[i].name, name) == 0) {
+				res[z] = li[i];
+				z++;
+			}
+		}
+	}
+	return z == 0 ? NULL : res;
+}
+
+struct patient* sort(struct patient* li, int size) {                    //Соритировка файла
+	struct patient* res = (struct patient*)malloc(sizeof(struct patient) * 1000);
+	struct patient* sorted = (struct patient*)malloc(sizeof(struct patient) * 1000);
+	struct patient* temp = (struct patient*)malloc(sizeof(struct patient) * 1000);
+	struct patient t;
+	int index = 0;
+	for (int i = 0; i < size; i++) {
+		if (li[i].temperature >= 36) {
+			temp[index] = li[i];
+			index++;
+			res = temp;
+		}
+	}
+	for (int i = 0; i < index - 1; i++) {
+		for (int j = 0; j < index - 1; j++) {
+			if (res[i].temperature > res[i + 1].temperature) {
+				t = res[i];
+				res[i] = res[i + 1];
+				res[i + 1] = t;
+			}
+		}
+	}
+	return res;
+}
+
+int save(struct patient* li, int size)        //Сохранение файла
+{
+	file = fopen(path, "w+");
+	for (int i = 0; i < size; i++)
+	{
+		fprintf(file, "%d %s %s %f %f %f\n", li[i].id, li[i].name, li[i].gender, li[i].heartrate, li[i].temperature, li[i].oxygenpressure);
+	}
+	fclose(file);
+	return 0;
+}
+
+struct patient* load()
+{
+	struct patient* ps = read();
+	return ps;
+}
